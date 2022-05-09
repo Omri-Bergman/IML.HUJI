@@ -3,6 +3,8 @@ from typing import Callable
 from typing import NoReturn
 from ...base import BaseEstimator
 import numpy as np
+from IMLearn.metrics import loss_functions
+
 
 
 def default_callback(fit: Perceptron, x: np.ndarray, y: int):
@@ -73,7 +75,18 @@ class Perceptron(BaseEstimator):
         -----
         Fits model with or without an intercept depending on value of `self.fit_intercept_`
         """
-        raise NotImplementedError()
+        if self.include_intercept_:
+            X = np.insert(X, 0, np.ones(X.shape[0]), 1)
+        if self.coefs_ is None:
+            self.coefs_ = np.zeros(X.shape[1])
+        self.fitted_  = True
+        t = 0
+        while (any(np.sign(X @ self.coefs_) * y <= 0) and t < self.max_iter_):
+            ind = np.nonzero(np.sign(X @ self.coefs_) * y <= 0)[0][0]
+            self.coefs_ += (X[ind] * y[ind])
+            self.callback_(self, None, 0)
+            t += 1
+
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """
@@ -89,7 +102,9 @@ class Perceptron(BaseEstimator):
         responses : ndarray of shape (n_samples, )
             Predicted responses of given samples
         """
-        raise NotImplementedError()
+        if self.include_intercept_:
+            X = np.insert(X, 0, np.ones(X.shape[0]), 1)
+        return np.sign(X @ self.coefs_)
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """
@@ -108,5 +123,4 @@ class Perceptron(BaseEstimator):
         loss : float
             Performance under missclassification loss function
         """
-        from ...metrics import misclassification_error
-        raise NotImplementedError()
+        return loss_functions.misclassification_error(y, self.predict(X))

@@ -1,6 +1,6 @@
 from challenge.agoda_cancellation_estimator import AgodaCancellationEstimator
 from IMLearn.utils import split_train_test
-
+from challenge.challenge import AgodaCancellationEstimator
 import numpy as np
 import pandas as pd
 
@@ -55,14 +55,14 @@ def evaluate_and_export(estimator: BaseEstimator, X: np.ndarray, filename: str):
 
 
 if __name__ == '__main__':
-    np.random.seed(0)
+    # np.random.seed(0)
 
     # Load data
-    df, cancellation_labels = load_data("../datasets/agoda_cancellation_train.csv")
+    df, cancellation_labels = load_data(r"C:\Users\omrib\PycharmProjects\IML\IML.HUJI\datasets\agoda_cancellation_train.csv")
     train_X, train_y, test_X, test_y = split_train_test(df, cancellation_labels)
-
+    train_X.to_csv(r"C:\Users\omrib\PycharmProjects\IML\IML.HUJI\challenge\set_train.csv", sep='\t')
     # Fit model over data
-    estimator = AgodaCancellationEstimator().fit(train_X, train_y)
+    # estimator = AgodaCancellationEstimator().fit(train_X, train_y)
 
     # Store model predictions over test set
-    evaluate_and_export(estimator, test_X, "id1_id2_id3.csv")
+    # evaluate_and_export(estimator, test_X, "id1_id2_id3.csv")

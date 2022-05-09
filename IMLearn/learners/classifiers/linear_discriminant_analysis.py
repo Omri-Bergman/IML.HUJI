@@ -25,13 +25,14 @@ class LDA(BaseEstimator):
     self.pi_: np.ndarray of shape (n_classes)
         The estimated class probabilities. To be set in `GaussianNaiveBayes.fit`
     """
+
     def __init__(self):
         """
         Instantiate an LDA classifier
         """
         super().__init__()
         self.classes_, self.mu_, self.cov_, self._cov_inv, self.pi_ = None, None, None, None, None
-
+        self.d_,  self.k_, self.m_ =0,0,0
     def _fit(self, X: np.ndarray, y: np.ndarray) -> NoReturn:
         """
         fits an LDA model.
@@ -46,7 +47,22 @@ class LDA(BaseEstimator):
         y : ndarray of shape (n_samples, )
             Responses of input data to fit to
         """
-        raise NotImplementedError()
+        self.d_ = X.shape[1]
+        self.cov_ = np.zeros((self.d_, self.d_))
+        self.classes_ = np.unique(y)
+        self.k_ = len(self.classes_)
+        self.mu_ = np.zeros((self.k_, self.d_))
+        self.pi_ = np.zeros(self.k_)
+        self.m_ = X.shape[0]
+
+        for i, k in enumerate(self.classes_):
+            self.mu_[i] = np.mean(X[y==k], axis=0)
+            self.pi_[i] = X[y==k].shape[0]/self.m_
+            self.cov_ += (X[y==k] - self.mu_[i]).T.dot(X[y==k] - self.mu_[i])
+        self.cov_ /= (self.m_-self.k_)
+        self._cov_inv = np.linalg.inv(self.cov_)
+        self.fitted_ = True
+        print("CLASESS NUM: ", self.k_)
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """
@@ -62,7 +78,10 @@ class LDA(BaseEstimator):
         responses : ndarray of shape (n_samples, )
             Predicted responses of given samples
         """
-        raise NotImplementedError()
+
+        l_matrix = self.likelihood(X)
+        return np.array([self.classes_[np.argmax(x_j)] for x_j in l_matrix])
+
 
     def likelihood(self, X: np.ndarray) -> np.ndarray:
         """
@@ -80,9 +99,15 @@ class LDA(BaseEstimator):
 
         """
         if not self.fitted_:
-            raise ValueError("Estimator must first be fitted before calling `likelihood` function")
-
-        raise NotImplementedError()
+            raise ValueError(
+                "Estimator must first be fitted before calling `likelihood` function")
+        a = np.array([(self._cov_inv @ self.mu_[k]) for k in range(self.k_)])
+        b = np.array([(np.log(self.pi_[k]) - 0.5 * self.mu_[k] @ self._cov_inv @ self.mu_[k]) for k in range(self.k_)])
+        ll_matrix = np.zeros([X.shape[0], self.classes_.size])
+        for i, x in enumerate(X):
+            for k in range(self.k_):
+                ll_matrix[i][k] = a[k] @ x + b[k]
+        return ll_matrix
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """
@@ -102,4 +127,4 @@ class LDA(BaseEstimator):
             Performance under missclassification loss function
         """
         from ...metrics import misclassification_error
-        raise NotImplementedError()
+        return misclassification_error(self._predict(X), y)
